@@ -1,9 +1,12 @@
 package com.github.loafer.mybatis.pagination.dialect;
 
 /**
- * Date Created  14-2-26
+ * Date Created  2014-2-18
  *
- * @author zjh
+ * @author loafer[zjh527@gmail.com]
+ * @version 1.0
  */
 public enum DatabaseDialectShortName {
+    MYSQL,
+    ORACLE
 }

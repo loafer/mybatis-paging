@@ -1,9 +1,20 @@
 package com.github.loafer.mybatis.pagination.dialect;
 
 /**
- * Date Created  14-2-26
+ * Date Created  2014-2-18
  *
- * @author zjh
+ * @author loafer[zjh527@gmail.com]
+ * @version 1.0
  */
-public class DialectFactory {
+public abstract  class DialectFactory {
+    public static Dialect buildDialect(DatabaseDialectShortName databaseName){
+        switch (databaseName){
+            case MYSQL:
+                return new MySQLDialect();
+            case ORACLE:
+                return new OracleDialect();
+            default:
+                throw new UnsupportedOperationException();
+        }
+    }
 }

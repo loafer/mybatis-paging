@@ -1,6 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+       xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd">
 
+    <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+          destroy-method="close"
+          p:driverClassName="oracle.jdbc.driver.OracleDriver"
+          p:url="jdbc:oracle:thin:@10.68.7.186:1521:orcl"
+          p:username="ythjcpt"
+          p:password="1"/>
+
+
+    <bean id="mybatisPaginationInterceptor"
+          class="com.github.loafer.mybatis.pagination.PaginationInterceptor">
+        <property name="properties">
+            <props>
+                <prop key="dialect">oracle</prop>
+                <prop key="stmtIdRegex">*.selectPaging</prop>
+            </props>
+        </property>
+    </bean>
+
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="mapperLocations" value="classpath*:mappers/*.xml"/>
+        <property name="plugins">
+            <list>
+                <ref bean="mybatisPaginationInterceptor"/>
+            </list>
+        </property>
+    </bean>
+
+
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+        <constructor-arg name="sqlSessionFactory" ref="sqlSessionFactory"/>
+    </bean>
 </beans>
