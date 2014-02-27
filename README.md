@@ -21,9 +21,9 @@ or
             </plugin>
         </plugins>
 
-*`dialect`, database type. oracle\mysql
-*`dialectClass`, a subclass of `com.github.loafer.mybatis.pagination.dialect.Dialect`.
-*`stmtIdRegex`, statement id regex string. example: `*.selectPaging` or `*.selectPaging*`.
+* `dialect`, database type. oracle\mysql
+* `dialectClass`, a subclass of `com.github.loafer.mybatis.pagination.dialect.Dialect`.
+* `stmtIdRegex`, statement id regex string. example: `*.selectPaging` or `*.selectPaging*`.
 
 SQL Mapper config
 -----------------
@@ -32,7 +32,7 @@ SQL Mapper config
         </select>
 
 
-@See[config](https://github.com/loafer/mybatis-paging/blob/master/src/test/resources/applicationContext.xml)
+@See [config](https://github.com/loafer/mybatis-paging/blob/master/src/test/resources/applicationContext.xml)
 and [Basic Usage](https://github.com/loafer/mybatis-paging/blob/master/src/test/java/com/github/loafer/mybatis/pagination/UserService.java)
 
 Others
