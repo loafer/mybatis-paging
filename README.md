@@ -7,6 +7,7 @@ The current support for Oracle, MySQL database dialect.
 Basic Usage
 -----------
 include the following in mybatis-config.xml.
+
         <plugins>
             <plugin interceptor="com.github.loafer.mybatis.pagination.PaginationInterceptor">
                 <property name="dialect" value="oracle"/>
@@ -14,6 +15,7 @@ include the following in mybatis-config.xml.
             </plugin>
         </plugins>
 or
+
         <plugins>
             <plugin interceptor="com.github.loafer.mybatis.pagination.PaginationInterceptor">
                 <property name="dialectClass" value="com.github.loafer.mybatis.pagination.dialect.OracleDialect"/>
