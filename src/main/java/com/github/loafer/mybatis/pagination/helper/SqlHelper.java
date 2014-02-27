@@ -27,7 +27,7 @@ public abstract class SqlHelper {
         logger.debug("Parameters: {} ", parameterObject);
 
         PreparedStatement stmt = null;
-        ResultSet rs = null;
+        ResultSet rs;
         try{
             stmt = connection.prepareStatement(countSql);
             DefaultParameterHandler handler = new DefaultParameterHandler(ms, parameterObject, boundSql);

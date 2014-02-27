@@ -36,7 +36,6 @@ public class Repository implements IRepository {
         RowBounds rowBounds = new RowBounds(offset, limit);
         List<E> rows = sqlSession.selectList(statement, parameter, rowBounds);
         int total = PaginationInterceptor.getPaginationTotal();
-        PaginationInterceptor.clean();
         DataPaging<E> dataPaging = new DataPaging<E>(rows, total);
         return dataPaging;
     }
