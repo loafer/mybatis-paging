@@ -1,7 +1,7 @@
 mybatis-paging
 ==============
 
-Based on the database dialect Mybatis3 paging plug-in.
+Based on the database dialect Mybatis3 paging plug-in.    
 The current support for Oracle, MySQL database dialect.
 
 Basic Usage
