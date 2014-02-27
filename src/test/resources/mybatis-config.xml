@@ -5,7 +5,8 @@
 <configuration>
     <plugins>
         <plugin interceptor="com.github.loafer.mybatis.pagination.PaginationInterceptor">
-            <property name="dialect" value="ORACLE"/>
+            <property name="dialect" value="oracle"/>
+            <property name="stmtIdRegex" value="*.selectPaging"/>
         </plugin>
     </plugins>
 </configuration>
