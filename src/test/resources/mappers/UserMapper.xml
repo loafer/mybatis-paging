@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mybaits.UserMapper">
+    <select id="selectUser" resultType="hashmap">
+        select * from ent_user
+        <where>
+            <if test="user_name != null">
+                and user_name = #{user_name}
+            </if>
+            <if test="orgna_id != null">
+                and orgna_id = #{orgna_id}
+            </if>
+        </where>
+    </select>
+</mapper> 
