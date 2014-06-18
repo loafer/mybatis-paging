@@ -28,8 +28,8 @@ public class OracleDialect extends Dialect{
         }
         pagingSelect.append(sql);
         if (offset >= 0) {
-//            String endString = offsetPlaceholder + "+" + limitPlaceholder;
-            String endString = String.valueOf(Integer.parseInt(offsetPlaceholder) + Integer.parseInt(limitPlaceholder));
+//这种写法在0-10时会出现第一页数据错误            String endString = String.valueOf(Integer.parseInt(offsetPlaceholder) + Integer.parseInt(limitPlaceholder));
+            String endString = offsetPlaceholder + "+" + limitPlaceholder;
             pagingSelect.append(" ) row_ ) where rownum_ <= ")
                     .append(endString).append(" and rownum_ > ").append(offsetPlaceholder);
         } else {
