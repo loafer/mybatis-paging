@@ -1,18 +1,16 @@
 package com.github.loafer.mybatis.pagination;
 
-import com.github.loafer.mybatis.pagination.dialect.DatabaseDialectShortName;
 import com.github.loafer.mybatis.pagination.dialect.Dialect;
 import com.github.loafer.mybatis.pagination.helper.DialectHelper;
 import com.github.loafer.mybatis.pagination.helper.SqlHelper;
 import com.github.loafer.mybatis.pagination.util.PatternMatchUtils;
 import com.github.loafer.mybatis.pagination.util.StringUtils;
-import org.apache.ibatis.executor.Executor;
+import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
-import org.apache.ibatis.mapping.ParameterMapping;
-import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.plugin.*;
-import org.apache.ibatis.session.ResultHandler;
+import org.apache.ibatis.reflection.MetaObject;
+import org.apache.ibatis.reflection.SystemMetaObject;
 import org.apache.ibatis.session.RowBounds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,19 +21,12 @@ import java.util.Properties;
 /**
  * Date Created  2014-2-17
  *
- * @author loafer[zjh527@gmail.com]
- * @version 1.0
+ * @author loafer[zjh527@163.com]
+ * @version 2.0
  */
-@Intercepts({@Signature(
-        type = Executor.class,
-        method = "query",
-        args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class})})
+@Intercepts({ @Signature(type = StatementHandler.class, method = "prepare", args = { Connection.class }) })
 public class PaginationInterceptor implements Interceptor {
     private Logger logger = LoggerFactory.getLogger(this.getClass());
-    private static final int MAPPED_STATEMENT_INDEX = 0;
-    private static final int PARAMETER_INDEX = 1;
-    private static final int ROWBOUNDS_INDEX = 2;
-    private static final int RESULT_HANDLER_INDEX = 3;
     private static final ThreadLocal<Integer> PAGINATION_TOTAL = new ThreadLocal<Integer>(){
         @Override
         protected Integer initialValue() {
@@ -44,7 +35,7 @@ public class PaginationInterceptor implements Interceptor {
     };
 
     private Dialect dialect;
-    private String mappedStatementIdRegex;
+    private String pagingSqlIdRegex;
 
     /**
      * Get Pagination total
@@ -61,32 +52,29 @@ public class PaginationInterceptor implements Interceptor {
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
-        final Object[] queryArgs = invocation.getArgs();
-        final MappedStatement ms = (MappedStatement) queryArgs[MAPPED_STATEMENT_INDEX];
-        final Object parameter = queryArgs[PARAMETER_INDEX];
-        final RowBounds rowBounds = (RowBounds) queryArgs[ROWBOUNDS_INDEX];
+        StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
+        MetaObject metaStatementHandler = SystemMetaObject.forObject(statementHandler);
+        RowBounds rowBounds = (RowBounds) metaStatementHandler.getValue("delegate.rowBounds");
+        MappedStatement mappedStatement = (MappedStatement) metaStatementHandler.getValue("delegate.mappedStatement");
 
         int offset = rowBounds.getOffset();
         int limit = rowBounds.getLimit();
 
-        boolean intercept = PatternMatchUtils.simpleMatch(mappedStatementIdRegex, ms.getId());
+        boolean intercept = PatternMatchUtils.simpleMatch(pagingSqlIdRegex, mappedStatement.getId());
+        if(intercept && dialect.supportsLimit() &&
+                (offset != RowBounds.NO_ROW_OFFSET || limit != RowBounds.NO_ROW_LIMIT)){
 
-        if(intercept && dialect.supportsLimit() && (offset != RowBounds.NO_ROW_OFFSET || limit != RowBounds.NO_ROW_LIMIT)){
-            final BoundSql boundSql = ms.getBoundSql(parameter);
-            String sql = boundSql.getSql().trim();
-            logger.info("sql: {}", boundSql.getSql().trim());
-            logger.info("limit sql: {}", dialect.getLimitString(boundSql.getSql(), 0, 10));
-
-            final Executor executor = (Executor) invocation.getTarget();
-            Connection connection = executor.getTransaction().getConnection();
-            int count = SqlHelper.getCount(ms, connection, parameter, dialect);
+            BoundSql boundSql = statementHandler.getBoundSql();
+            Object parameterObject = boundSql.getParameterObject();
+            Connection connection = (Connection) invocation.getArgs()[0];
+            int count = SqlHelper.getCount(mappedStatement, connection, parameterObject, dialect);
             PAGINATION_TOTAL.set(count);
 
-            String limitSql = dialect.getLimitString(sql, offset, limit);
-            MappedStatement newMs = newMappedStatement(ms, boundSql, limitSql);
-
-            queryArgs[ROWBOUNDS_INDEX] = new RowBounds(RowBounds.NO_ROW_OFFSET, RowBounds.NO_ROW_LIMIT);
-            queryArgs[MAPPED_STATEMENT_INDEX] = newMs;
+            String originalSql = (String) metaStatementHandler.getValue("delegate.boundSql.sql");
+            metaStatementHandler.setValue("delegate.boundSql.sql", dialect.getLimitString(originalSql, offset, limit));
+            metaStatementHandler.setValue("delegate.rowBounds.offset", RowBounds.NO_ROW_OFFSET);
+            metaStatementHandler.setValue("delegate.rowBounds.limit", RowBounds.NO_ROW_LIMIT);
+            logger.info("limit sql: {}", boundSql.getSql());
         }
 
         return invocation.proceed();
@@ -101,9 +89,16 @@ public class PaginationInterceptor implements Interceptor {
     public void setProperties(Properties properties) {
         String dialectClass = properties.getProperty("dialectClass");
         if(StringUtils.isBlank(dialectClass)){
-            String dialectShortName = properties.getProperty("dialect");
-            checkDialect(dialectShortName);
-            dialect = DialectHelper.getDialect(DatabaseDialectShortName.valueOf(dialectShortName.toUpperCase()));
+            Dialect.Type databaseType = null;
+            try{
+                databaseType = Dialect.Type.valueOf(properties.getProperty("dialect").toUpperCase());
+            }catch (Exception e){}
+
+            if(null == databaseType){
+                throw new RuntimeException("Plug-in [PaginationInterceptor] the dialect of the attribute value is invalid! Valid values for:"
+                        + getDialectTypeValidValues());
+            }
+            dialect = DialectHelper.getDialect(databaseType);
         }else{
             try {
                 dialect = (Dialect) Class.forName(dialectClass).newInstance();
@@ -112,88 +107,15 @@ public class PaginationInterceptor implements Interceptor {
             }
         }
 
-        mappedStatementIdRegex = properties.getProperty("stmtIdRegex", "*.selectPaging");
-
+        pagingSqlIdRegex = properties.getProperty("stmtIdRegex", "*.selectPaging");
     }
 
-    private void checkDialect(String dialectShortName){
-        try{
-            DatabaseDialectShortName.valueOf(dialectShortName.toUpperCase());
-        }catch (Exception e){
-            throw new RuntimeException("Plug-in [PaginationInterceptor] the dialect of the attribute value is invalid!");
+    private String getDialectTypeValidValues(){
+        StringBuilder sb = new StringBuilder();
+        for(int i=0; i<Dialect.Type.values().length; i++){
+            sb.append(Dialect.Type.values()[i].name())
+                    .append(",");
         }
-
-    }
-
-
-    //@see org.apache.ibatis.builder.MapperBuilderAssistant
-    private MappedStatement newMappedStatement(final MappedStatement ms,
-                                               final BoundSql boundSql,
-                                               final String sql){
-        BoundSql newBoundSql = newBoundSql(ms, boundSql, sql);
-        RawSqlSource  sqlSource = new RawSqlSource(newBoundSql);
-        MappedStatement.Builder builder = new MappedStatement.Builder(
-                ms.getConfiguration(),
-                ms.getId(),
-                sqlSource,
-                ms.getSqlCommandType()
-        );
-
-        builder.resource(ms.getResource());
-        builder.fetchSize(ms.getFetchSize());
-        builder.statementType(ms.getStatementType());
-        builder.keyGenerator(ms.getKeyGenerator());
-        String[] keyProperties = ms.getKeyProperties();
-        builder.keyProperty(keyProperties == null ? null : keyProperties[0]);
-
-        //setStatementTimeout()
-        builder.timeout(ms.getTimeout());
-
-        //setStatementResultMap()
-        builder.parameterMap(ms.getParameterMap());
-
-        //setStatementResultMap()
-        builder.resultMaps(ms.getResultMaps());
-        builder.resultSetType(ms.getResultSetType());
-
-        //setStatementCache()
-        builder.cache(ms.getCache());
-        builder.flushCacheRequired(ms.isFlushCacheRequired());
-        builder.useCache(ms.isUseCache());
-
-        return builder.build();
-    }
-
-    private BoundSql newBoundSql(final MappedStatement ms,
-                                 final BoundSql boundSql,
-                                 final String sql){
-        BoundSql newBoundSql = new BoundSql(
-                ms.getConfiguration(),
-                sql,
-                boundSql.getParameterMappings(),
-                boundSql.getParameterObject()
-        );
-
-        for(ParameterMapping mapping : boundSql.getParameterMappings()){
-            String prop = mapping.getProperty();
-            if(boundSql.hasAdditionalParameter(prop)){
-                newBoundSql.setAdditionalParameter(prop, boundSql.getAdditionalParameter(prop));
-            }
-        }
-
-        return newBoundSql;
-    }
-
-    public class RawSqlSource implements SqlSource {
-        private BoundSql boundSql;
-
-        public RawSqlSource(BoundSql boundSql) {
-            this.boundSql = boundSql;
-        }
-
-        @Override
-        public BoundSql getBoundSql(Object parameterObject) {
-            return boundSql;
-        }
+        return sb.toString();
     }
 }
