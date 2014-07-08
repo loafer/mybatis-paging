@@ -12,7 +12,7 @@ import java.sql.*;
 /**
  * Date Created  2014-2-25
  *
- * @author loafer[zjh527@gmail.com]
+ * @author loafer[zjh527@163.com]
  * @version 1.0
  */
 public abstract class SqlHelper {

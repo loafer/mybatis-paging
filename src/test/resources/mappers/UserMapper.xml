@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.github.loafer.mybaits.mappers.UserMapper">
     <select id="selectPaging" resultType="hashmap">
-        select * from ent_user
+        select user_loginname, orgna_id from ent_user
         <where>
             <if test="user_name != null">
                 and user_name = #{user_name}

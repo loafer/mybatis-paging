@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * Date Created  2014-2-17
  *
- * @author loafer[zjh527@gmail.com]
+ * @author loafer[zjh527@163.com]
  * @version 1.0
  */
 @Component
@@ -36,6 +36,7 @@ public class Repository implements IRepository {
         RowBounds rowBounds = new RowBounds(offset, limit);
         List<E> rows = sqlSession.selectList(statement, parameter, rowBounds);
         int total = PaginationInterceptor.getPaginationTotal();
+        PaginationInterceptor.clean();
         DataPaging<E> dataPaging = new DataPaging<E>(rows, total);
         return dataPaging;
     }

@@ -9,8 +9,8 @@
     <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
           destroy-method="close"
           p:driverClassName="oracle.jdbc.driver.OracleDriver"
-          p:url="jdbc:oracle:thin:@10.68.7.186:1521:orcl"
-          p:username="ythjcpt"
+          p:url="jdbc:oracle:thin:@localhost:1521:orcl"
+          p:username="test500"
           p:password="1"/>
 
 

@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * Date Created 2014-2-26
  *
- * @author loafer[zjh527@gmail.com]
+ * @author loafer[zjh527@163.com]
  * @version 1.0
  */
 public class DataPaging<E> {
@@ -31,6 +31,7 @@ public class DataPaging<E> {
     public String toString() {
         return "DataPaging{" +
                 "total=" + total +
+                ", rows=" + rows +
                 '}';
     }
 }
